@@ -1,47 +1,34 @@
 import os
 import telebot
 import google.generativeai as genai
+import sys
 
-# Environment variables-тен кілттерді алу
-TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
-GEMINI_KEY = os.environ.get('GEMINI_KEY')
+# Кілттерді тексеру
+token = os.environ.get('TELEGRAM_TOKEN')
+api_key = os.environ.get('GEMINI_KEY')
 
-# Gemini-ді баптау
-genai.configure(api_key=GEMINI_KEY)
+if not token or not api_key:
+    print("Қате: Кілттер табылған жоқ! Environment Variables бөлімін тексеріңіз.")
+    sys.exit(1)
+
+# Баптау
+genai.configure(api_key=api_key)
 model = genai.GenerativeModel('gemini-1.5-flash')
+bot = telebot.TeleBot(token)
 
-# Telegram ботты бастау
-bot = telebot.TeleBot(TELEGRAM_TOKEN)
-
-# Боттың мінез-құлқын анықтау
-SYSTEM_PROMPT = """Сен — хирург Айболат Смагуловтың цифрлық көмекшісісің. 
-Тілің: Қазақ тілі. Пациенттерге жылы жауап беріп, медициналық кеңестер ұсын. 
-Сұрақтарға кәсіби әрі түсінікті жауап бер."""
+print("Бот іске қосылды...")
 
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "Сәлеметсіз бе! Мен доктор Айболаттың цифрлық көмекшісімін. Сізге қалай көмектесе аламын?")
+def start(message):
+    bot.reply_to(message, "Сәлеметсіз бе! Мен доктор Айболаттың көмекшісімін. Сізге қалай көмектесе аламын?")
 
-@bot.message_handler(func=lambda message: True)
-def handle_message(message):
+@bot.message_handler(func=lambda m: True)
+def chat(message):
     try:
-        # Gemini-ден жауап алу
-        response = model.generate_content(f"{SYSTEM_PROMPT}\n\nПациент: {message.text}")
+        response = model.generate_content(f"Сен — хирург Айболат Смагуловтың көмекшісісің. Қазақша жауап бер. Сұрақ: {message.text}")
         bot.send_message(message.chat.id, response.text)
     except Exception as e:
-        bot.send_message(message.chat.id, "Кешіріңіз, қате орын алды. Сәлден кейін қайталап көріңіз.")
+        print(f"Gemini қатесі: {e}")
+        bot.send_message(message.chat.id, "Кешіріңіз, ЖИ жауап бере алмай тұр. Кілтті тексеру керек.")
 
-# Ботты іске қосу
-if __name__ == "__main__":
-    from flask import Flask
-    app = Flask(__name__)
-
-    @app.route('/')
-    def index():
-        return "Bot is running!"
-
-    import threading
-    threading.Thread(target=bot.infinity_polling).start()
-    
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+bot.infinity_polling()
