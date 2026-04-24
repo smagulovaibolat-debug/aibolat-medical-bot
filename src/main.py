@@ -1,34 +1,36 @@
 import os
 import telebot
 import google.generativeai as genai
-import sys
 
-# Кілттерді тексеру
-token = os.environ.get('TELEGRAM_TOKEN')
-api_key = os.environ.get('GEMINI_KEY')
+# Кілттерді жүктеу
+TOKEN = os.environ.get('TELEGRAM_TOKEN')
+API_KEY = os.environ.get('GEMINI_KEY')
 
-if not token or not api_key:
-    print("Қате: Кілттер табылған жоқ! Environment Variables бөлімін тексеріңіз.")
-    sys.exit(1)
-
-# Баптау
-genai.configure(api_key=api_key)
+# Ботты баптау
+bot = telebot.TeleBot(TOKEN)
+genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
-bot = telebot.TeleBot(token)
-
-print("Бот іске қосылды...")
-
-@bot.message_handler(commands=['start'])
-def start(message):
-    bot.reply_to(message, "Сәлеметсіз бе! Мен доктор Айболаттың көмекшісімін. Сізге қалай көмектесе аламын?")
 
 @bot.message_handler(func=lambda m: True)
 def chat(message):
     try:
-        response = model.generate_content(f"Сен — хирург Айболат Смагуловтың көмекшісісің. Қазақша жауап бер. Сұрақ: {message.text}")
+        # Gemini-ге сұраныс
+        response = model.generate_content(message.text)
         bot.send_message(message.chat.id, response.text)
     except Exception as e:
-        print(f"Gemini қатесі: {e}")
-        bot.send_message(message.chat.id, "Кешіріңіз, ЖИ жауап бере алмай тұр. Кілтті тексеру керек.")
+        # Қатенің нақты атын Telegram-ға жіберу
+        error_msg = f"ЖИ қатесі: {str(e)}"
+        bot.send_message(message.chat.id, error_msg)
+
+# Тұрақты жұмыс істеу үшін веб-сервер (Render үшін)
+from flask import Flask
+import threading
+
+app = Flask('')
+@app.route('/')
+def home(): return "Бот жұмыс істеп тұр!"
+
+def run(): app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+threading.Thread(target=run).start()
 
 bot.infinity_polling()
