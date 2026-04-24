@@ -2,35 +2,27 @@ import os
 import telebot
 import google.generativeai as genai
 
-# Кілттерді жүктеу
+# Айнымалыларды алу
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
-API_KEY = os.environ.get('GEMINI_KEY')
+KEY = os.environ.get('GEMINI_KEY')
 
-# Ботты баптау
+# Ботты іске қосу
 bot = telebot.TeleBot(TOKEN)
-genai.configure(api_key=API_KEY)
+genai.configure(api_key=KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    bot.reply_to(message, "Сәлеметсіз бе! Доктор Айболаттың көмекшісі жұмыс істеп тұр.")
 
 @bot.message_handler(func=lambda m: True)
 def chat(message):
     try:
-        # Gemini-ге сұраныс
         response = model.generate_content(message.text)
         bot.send_message(message.chat.id, response.text)
     except Exception as e:
-        # Қатенің нақты атын Telegram-ға жіберу
-        error_msg = f"ЖИ қатесі: {str(e)}"
-        bot.send_message(message.chat.id, error_msg)
+        bot.send_message(message.chat.id, f"ЖИ қатесі: {e}")
 
-# Тұрақты жұмыс істеу үшін веб-сервер (Render үшін)
-from flask import Flask
-import threading
-
-app = Flask('')
-@app.route('/')
-def home(): return "Бот жұмыс істеп тұр!"
-
-def run(): app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
-threading.Thread(target=run).start()
-
-bot.infinity_polling()
+# Ботты үзіліссіз жұмыс істету
+if __name__ == "__main__":
+    bot.infinity_polling()
