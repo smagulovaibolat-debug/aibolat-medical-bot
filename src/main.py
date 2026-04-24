@@ -9,8 +9,7 @@ KEY = os.environ.get('GEMINI_KEY')
 # Ботты іске қосу
 bot = telebot.TeleBot(TOKEN)
 genai.configure(api_key=KEY)
-model = genai.GenerativeModel('models/gemini-1.5-flash')
-
+model = genai.GenerativeModel('gemini-pro')
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.reply_to(message, "Сәлеметсіз бе! Доктор Айболаттың көмекшісі жұмыс істеп тұр.")
